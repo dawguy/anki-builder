@@ -1,0 +1,97 @@
+package ai
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
+
+	"anki-builder/data"
+
+	openai "github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/option"
+)
+
+type Client struct {
+	api *openai.Client
+}
+
+func NewClient() *Client {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		panic("OPENAI_API_KEY not set")
+	}
+
+	c := openai.NewClient(
+		option.WithAPIKey(apiKey),
+	)
+	return &Client{
+		api: &c,
+	}
+}
+
+// EnrichWord calls OpenAI to get translation + image prompt.
+func (c *Client) EnrichWord(ctx context.Context, word data.VocabWord) (string, string, error) {
+	prompt := fmt.Sprintf(`You are helping a Korean learner.
+Word: %s
+Phrase (if given): %s
+
+1. Provide a concise English translation of the word. Ideally your reply would be one word long, but feel free to use multiple if it would help.`, word.KoreanWord, ptrOrEmpty(word.KoreanPhrase))
+
+	resp, err := c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model: openai.ChatModelGPT4oMini,
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(prompt),
+		},
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	text := resp.Choices[0].Message.Content
+	lines := splitTwoLines(text)
+	if len(lines) == 0 {
+		return "", "", err
+	}
+	englishWord := lines[0]
+
+	imagePrompt := fmt.Sprintf(`You are creating an image for a flashcard for a Korean learner.
+	Word: %s
+	English word: %s
+
+	1. Please provide a pharse that could be used to generate an image which will help the learner recall this word when they see the flashcard.`, word.KoreanWord, englishWord)
+	resp, err = c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model: openai.ChatModelGPT4oMini,
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.UserMessage(imagePrompt),
+		},
+	})
+	if err != nil {
+		return "", "", err
+	}
+	text = resp.Choices[0].Message.Content
+	lines = splitTwoLines(text)
+	if len(lines) == 0 {
+		return englishWord, "", err
+	}
+	return englishWord, lines[0], nil
+}
+
+func ptrOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func splitTwoLines(s string) []string {
+	var out []string
+	for _, line := range strings.Split(strings.TrimSpace(s), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			out = append(out, line)
+		}
+	}
+	return out
+}
+

@@ -9,6 +9,7 @@ import (
 	"anki-builder/data"
 
 	openai "github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/option"
 )
 
@@ -31,7 +32,7 @@ func NewClient() *Client {
 }
 
 // EnrichWord calls OpenAI to get translation + image prompt.
-func (c *Client) EnrichWord(ctx context.Context, word data.VocabWord) (string, string, error) {
+func (c *Client) EnrichWord(ctx context.Context, word data.VocabWord) (string, string, string, error) {
 	prompt := fmt.Sprintf(`You are helping a Korean learner.
 Word: %s
 Phrase (if given): %s
@@ -45,13 +46,13 @@ Phrase (if given): %s
 		},
 	})
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	text := resp.Choices[0].Message.Content
 	lines := splitTwoLines(text)
 	if len(lines) == 0 {
-		return "", "", err
+		return "", "", "", err
 	}
 	englishWord := lines[0]
 
@@ -67,15 +68,41 @@ Phrase (if given): %s
 		},
 	})
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	text = resp.Choices[0].Message.Content
 	lines = splitTwoLines(text)
 	if len(lines) == 0 {
-		return englishWord, "", err
+		return englishWord, "", "", err
 	}
-	return englishWord, lines[0], nil
+	imageDescription := lines[0]
+
+	img, err := c.GenerateImage(ctx, imageDescription)
+	if err != nil {
+		return englishWord, imageDescription, "", nil
+	}
+	
+	return englishWord, imageDescription, img, nil
 }
+
+// GenerateImage generates a 512x512 image for a given prompt and returns the URL.
+func (c *Client) GenerateImage(ctx context.Context, prompt string) (string, error) {
+	resp, err := c.api.Images.Generate(ctx, openai.ImageGenerateParams{
+		Prompt: prompt,
+		Size:   "512x512",
+		N:      param.NewOpt[int64](1),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Data) == 0 {
+		return "", fmt.Errorf("no image returned")
+	}
+
+	return resp.Data[0].URL, nil
+}
+
 
 func ptrOrEmpty(s *string) string {
 	if s == nil {

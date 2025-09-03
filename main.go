@@ -25,20 +25,21 @@ func main() {
 	fmt.Println("New words found in CSV:")
 	for _, w := range newWords {
 		fmt.Printf("%s | %s\n", w.KoreanWord, ptrOrEmpty(w.KoreanPhrase))
-		eng, imgPrompt, err := aiClient.EnrichWord(context.Background(), w)
+		eng, imgPrompt, imageUrl, err := aiClient.EnrichWord(context.Background(), w)
 		if err != nil {
 			log.Printf("OpenAI enrichment failed for %s: %v", w.KoreanWord, err)
 			continue
 		}
 		w.EnglishTranslation = &eng
-		w.ImageURL = &imgPrompt // for now store prompt instead of URL
-		fmt.Printf("Word: %s\nEnglish: %s\nImage Prompt: %s\n\n",
-			w.KoreanWord, eng, imgPrompt)
+		w.ImagePrompt = &imgPrompt
+		w.ImageURL = &imageUrl
+		fmt.Printf("Word: %s\nEnglish: %s\nImage Prompt: %s\nImage URL: %s\n\n",
+			w.KoreanWord, eng, imgPrompt, imageUrl)
 
 		// Save enriched word into DB
-//		if err := store.AddWord(w); err != nil {
-//			log.Printf("Failed to save %s: %v", w.KoreanWord, err)
-//		}
+		if err := store.AddWord(w); err != nil {
+			log.Printf("Failed to save %s: %v", w.KoreanWord, err)
+		}
 	}
 }
 

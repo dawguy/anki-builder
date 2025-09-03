@@ -7,11 +7,12 @@ import (
 )
 
 type VocabWord struct {
-	ID                int
-	KoreanWord        string
-	KoreanPhrase      *string
+	ID                 int
+	KoreanWord         string
+	KoreanPhrase       *string
 	EnglishTranslation *string
-	ImageURL          *string
+	ImagePrompt        *string
+	ImageURL           *string
 }
 
 type Store struct {
@@ -41,6 +42,7 @@ func (s *Store) initSchema() error {
 		korean_word TEXT NOT NULL,
 		korean_phrase TEXT,
 		english_translation TEXT,
+		image_prompt TEXT,
 		image_url TEXT
 	);
 
@@ -55,18 +57,18 @@ func (s *Store) initSchema() error {
 // AddWord inserts a new VocabWord into the database.
 func (s *Store) AddWord(word VocabWord) error {
 	query := `
-	INSERT INTO vocab_words (korean_word, korean_phrase, english_translation, image_url)
-	VALUES (?, ?, ?, ?)
+	INSERT INTO vocab_words (korean_word, korean_phrase, english_translation, image_prompt, image_url)
+	VALUES (?, ?, ?, ?, ?)
 	ON CONFLICT(korean_word) DO NOTHING;
 	`
 
-	_, err := s.db.Exec(query, word.KoreanWord, word.KoreanPhrase, word.EnglishTranslation, word.ImageURL)
+	_, err := s.db.Exec(query, word.KoreanWord, word.KoreanPhrase, word.EnglishTranslation, word.ImagePrompt, word.ImageURL)
 	return err
 }
 
 // GetAll retrieves all vocab words.
 func (s *Store) GetAll() ([]VocabWord, error) {
-	rows, err := s.db.Query(`SELECT id, korean_word, korean_phrase, english_translation, image_url FROM vocab_words`)
+	rows, err := s.db.Query(`SELECT id, korean_word, korean_phrase, english_translation, image_prompt, image_url FROM vocab_words`)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +77,7 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 	var words []VocabWord
 	for rows.Next() {
 		var w VocabWord
-		err := rows.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImageURL)
+		err := rows.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImagePrompt, &w.ImageURL)
 		if err != nil {
 			return nil, err
 		}
@@ -87,10 +89,10 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 
 // FindByKoreanWord looks up a word by its Korean form.
 func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
-	row := s.db.QueryRow(`SELECT id, korean_word, korean_phrase, english_translation, image_url FROM vocab_words WHERE korean_word = ?`, word)
+	row := s.db.QueryRow(`SELECT id, korean_word, korean_phrase, english_translation, image_prompt, image_url FROM vocab_words WHERE korean_word = ?`, word)
 
 	var w VocabWord
-	err := row.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImageURL)
+	err := row.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImagePrompt, &w.ImageURL)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -100,4 +102,3 @@ func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
 
 	return &w, nil
 }
-

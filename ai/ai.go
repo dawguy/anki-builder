@@ -56,11 +56,9 @@ Phrase (if given): %s
 	}
 	englishWord := lines[0]
 
-	imagePrompt := fmt.Sprintf(`You are creating an image for a flashcard for a Korean learner.
-	Word: %s
-	English word: %s
+	imagePrompt := fmt.Sprintf(`English word: %s
 
-	1. Please provide a pharse that could be used to generate an image which will help the learner recall this word when they see the flashcard.`, word.KoreanWord, englishWord)
+	1. Please provide a phrase that could be used to generate an image which will help the learner recall this word when they see it on a flashcard study app.`, englishWord)
 	resp, err = c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: openai.ChatModelGPT4oMini,
 		Messages: []openai.ChatCompletionMessageParamUnion{

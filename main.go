@@ -22,8 +22,13 @@ func main() {
 
 	aiClient := ai.NewClient()
 
+	alreadySeen := make(map[string]struct{})
 	fmt.Println("New words found in CSV:")
 	for _, w := range newWords {
+		if _, seen := alreadySeen[w.KoreanWord]; seen {
+			continue
+		}
+		alreadySeen[w.KoreanWord] = struct{}{}
 		fmt.Printf("%s | %s\n", w.KoreanWord, ptrOrEmpty(w.KoreanPhrase))
 		eng, imgPrompt, imageUrl, err := aiClient.EnrichWord(context.Background(), w)
 		if err != nil {

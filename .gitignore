@@ -1,2 +1,5 @@
 anki-builder
 images
+.DS_Store
+vocab.csv
+vocab.db

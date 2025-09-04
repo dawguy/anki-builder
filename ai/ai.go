@@ -88,7 +88,7 @@ Phrase (if given): %s
 }
 
 // GenerateImage generates a 512x512 image for a given prompt and returns the URL.
-func (c *Client) GenerateImage(ctx context.Context, prompt string, word string) (string, error) {
+func (c *Client) GenerateImage(ctx context.Context, prompt string, idStr string) (string, error) {
 	resp, err := c.api.Images.Generate(ctx, openai.ImageGenerateParams{
 		Prompt: prompt,
 		Size:   "512x512",
@@ -117,7 +117,7 @@ func (c *Client) GenerateImage(ctx context.Context, prompt string, word string) 
 	defer respHTTP.Body.Close()
 
 	// 4. Save file with sanitized name
-	filename := sanitizeFilename(word) + ".png"
+	filename := sanitizeFilename(idStr) + ".png"
 	localPath := filepath.Join("raw_images", filename)
 	file, err := os.Create(localPath)
 	if err != nil {

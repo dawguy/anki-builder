@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"anki-builder/ai"
 	"anki-builder/data"
@@ -44,6 +48,20 @@ func main() {
 		// Save enriched word into DB
 		if err := store.AddWord(w); err != nil {
 			log.Printf("Failed to save %s: %v", w.KoreanWord, err)
+			continue
+		}
+		savedWord, err := store.FindByKoreanWord(w.KoreanWord)
+		if err != nil {
+			log.Printf("Failed to retrieve from store %s: %v", w.KoreanWord, err)
+			continue
+		}
+		if w.EnglishTranslation != nil {
+			filename := sanitizeFilename(*w.EnglishTranslation)
+			err = os.Rename(fmt.Sprintf("raw_images/%s.png", filename), fmt.Sprintf("raw_images/%s.png", strconv.Itoa(savedWord.ID)))
+			if err != nil {
+				log.Printf("Failed to rename file %s to %s", fmt.Sprintf("raw_images/%s.png", filename), fmt.Sprintf("raw_images/%s.png", strconv.Itoa(savedWord.ID)))
+				continue
+			}
 		}
 	}
 }
@@ -53,4 +71,14 @@ func ptrOrEmpty(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+var invalidChars = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
+
+// sanitizeFilename replaces characters that aren't allowed in filenames
+func sanitizeFilename(s string) string {
+	s = strings.TrimSpace(s)
+	s = invalidChars.ReplaceAllString(s, "_")
+	s = strings.Trim(s, "_") // remove leading/trailing underscores
+	return s
 }

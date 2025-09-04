@@ -8,6 +8,7 @@ from io import BytesIO
 # --- CONFIG ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "vocab.db")
+RAW_DIR = os.path.join(BASE_DIR, "raw_images")
 MEDIA_DIR = os.path.join(BASE_DIR, "images")
 OUTPUT_FILE = os.path.join(BASE_DIR, "korean_vocab.apkg")
 DECK_NAME = "Korean Vocab"
@@ -53,25 +54,23 @@ for row in rows:
     word_id, korean_word, korean_phrase, english_translation, image_url = row
 
     img_tag = ""
-    if image_url:
+    raw_path = os.path.join(RAW_DIR, f"{word_id}.png")
+    if os.path.exists(raw_path):
         try:
-            ext = os.path.splitext(image_url)[-1] or ".jpg"
-            filename = f"img_{word_id}{ext}"
-            filepath = os.path.join(MEDIA_DIR, filename)
+            img = Image.open(raw_path)
+            img = img.resize(IMAGE_SIZE, Image.LANCZOS)
 
-            if not os.path.exists(filepath):
-                print(f"Getting image {image_url}")
-                r = requests.get(image_url, timeout=10)
-                if r.status_code == 200:
-                    img = Image.open(BytesIO(r.content))
-                    img = img.resize(IMAGE_SIZE, Image.LANCZOS)
-                    img.save(filepath)
+            filename = f"img_{word_id}.png"
+            filepath = os.path.join(MEDIA_DIR, filename)
+            img.save(filepath)
 
             img_tag = f"<img src='{filename}'>"
             media_files.append(filepath)
 
         except Exception as e:
-            print(f"Could not process {image_url}: {e}")
+            print(f"Could not process {raw_path}: {e}")
+    else:
+        print(f"No raw image for word_id {word_id}, skipping")
 
     # Use DB id as guid so we never add a duplicate note
     note = genanki.Note(

@@ -3,14 +3,18 @@ package ai
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"anki-builder/data"
 
 	openai "github.com/openai/openai-go/v2"
-	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/packages/param"
 )
 
 type Client struct {
@@ -58,7 +62,7 @@ Phrase (if given): %s
 
 	imagePrompt := fmt.Sprintf(`English word: %s
 
-	1. Please provide a phrase that could be used to generate an image which will help the learner recall this word when they see it on a flashcard study app.`, englishWord)
+	1. Please provide a phrase that could be used to generate an image which will help the learner recall this word when they see it on a flashcard study app. Do not include any text other than the phrase which will be used to generate an image.`, englishWord)
 	resp, err = c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: openai.ChatModelGPT4oMini,
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -75,7 +79,7 @@ Phrase (if given): %s
 	}
 	imageDescription := lines[0]
 
-	img, err := c.GenerateImage(ctx, imageDescription)
+	img, err := c.GenerateImage(ctx, imageDescription, englishWord)
 	if err != nil {
 		return englishWord, imageDescription, "", nil
 	}
@@ -84,7 +88,7 @@ Phrase (if given): %s
 }
 
 // GenerateImage generates a 512x512 image for a given prompt and returns the URL.
-func (c *Client) GenerateImage(ctx context.Context, prompt string) (string, error) {
+func (c *Client) GenerateImage(ctx context.Context, prompt string, word string) (string, error) {
 	resp, err := c.api.Images.Generate(ctx, openai.ImageGenerateParams{
 		Prompt: prompt,
 		Size:   "512x512",
@@ -98,7 +102,35 @@ func (c *Client) GenerateImage(ctx context.Context, prompt string) (string, erro
 		return "", fmt.Errorf("no image returned")
 	}
 
-	return resp.Data[0].URL, nil
+	imageURL := resp.Data[0].URL
+
+	// 2. Create raw_images folder if it doesn't exist
+	if err := os.MkdirAll("raw_images", os.ModePerm); err != nil {
+		return "", err
+	}
+
+	// 3. Download the image
+	respHTTP, err := http.Get(imageURL)
+	if err != nil {
+		return "", err
+	}
+	defer respHTTP.Body.Close()
+
+	// 4. Save file with sanitized name
+	filename := sanitizeFilename(word) + ".png"
+	localPath := filepath.Join("raw_images", filename)
+	file, err := os.Create(localPath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, respHTTP.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return localPath, nil
 }
 
 
@@ -120,3 +152,12 @@ func splitTwoLines(s string) []string {
 	return out
 }
 
+var invalidChars = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
+
+// sanitizeFilename replaces characters that aren't allowed in filenames
+func sanitizeFilename(s string) string {
+	s = strings.TrimSpace(s)
+	s = invalidChars.ReplaceAllString(s, "_")
+	s = strings.Trim(s, "_") // remove leading/trailing underscores
+	return s
+}

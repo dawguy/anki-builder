@@ -3,3 +3,4 @@ images
 .DS_Store
 vocab.csv
 vocab.db
+raw_images

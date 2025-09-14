@@ -101,7 +101,7 @@ Image prompt: <please create a prompt based on the word which can be fed into an
 func (c *Client) GenerateImage(ctx context.Context, prompt string, idStr string) (string, error) {
 	resp, err := c.api.Images.Generate(ctx, openai.ImageGenerateParams{
 		Prompt: prompt,
-		Size:   "512x512",
+		Size:   "1024x1024",
 		N:      param.NewOpt[int64](1),
 	})
 	if err != nil {

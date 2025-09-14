@@ -46,7 +46,14 @@ func (s *Store) ParseCSVNewWords(path string) ([]VocabWord, error) {
 			return nil, err
 		}
 		if existing != nil {
-			continue // skip duplicates
+			if phrase != nil && existing.KoreanPhrase != nil {
+				// Allow duplicates if the mined setence is different.
+				if *phrase == *existing.KoreanPhrase && *phrase != "" {
+					continue
+				}
+			} else {
+				continue // skip duplicates
+			}
 		}
 
 		// Append new word
@@ -58,4 +65,3 @@ func (s *Store) ParseCSVNewWords(path string) ([]VocabWord, error) {
 
 	return newWords, nil
 }
-

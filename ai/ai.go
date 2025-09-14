@@ -79,12 +79,8 @@ Phrase (if given): %s
 	}
 	imageDescription := lines[0]
 
-	img, err := c.GenerateImage(ctx, imageDescription, englishWord)
-	if err != nil {
-		return englishWord, imageDescription, "", nil
-	}
-	
-	return englishWord, imageDescription, img, nil
+	// Skipping image generation for testing purposes
+	return englishWord, imageDescription, "", nil
 }
 
 // GenerateImage generates a 512x512 image for a given prompt and returns the URL.

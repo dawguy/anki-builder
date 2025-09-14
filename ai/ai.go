@@ -87,6 +87,13 @@ Image prompt: <please create a prompt based on the word which can be fed into an
 
 	text := resp.Choices[0].Message.Content
 	enrichedWord := ParseEnrichedWord(text)
+
+	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
+	if err != nil {
+		return EnrichedWord{}, err
+	}
+	enrichedWord.ImageURL = imgPath
+
 	return enrichedWord, nil
 }
 

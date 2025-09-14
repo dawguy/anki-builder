@@ -1,9 +1,7 @@
 import sqlite3
 import genanki
-import requests
 import os
 from PIL import Image
-from io import BytesIO
 
 # --- CONFIG ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -28,30 +26,40 @@ model = genanki.Model(
     "Korean Vocab Model",
     fields=[
         {"name": "KoreanWord"},
+        {"name": "KoreanDictionaryForm"},
         {"name": "KoreanPhrase"},
-        {"name": "EnglishTranslation"},
+        {"name": "KoreanShortExample"},
+        {"name": "EnglishShort"},
+        {"name": "EnglishLong"},
+        {"name": "EnglishAlternate"},
         {"name": "ImageUrl"},
     ],
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "{{KoreanWord}}<br><br>{{KoreanPhrase}}",
-            "afmt": "{{EnglishTranslation}}<br><br>{{ImageUrl}}",
+            "qfmt": "{{KoreanDictionaryForm}}<br><br>{{KoreanShortExample}}",
+            "afmt": "{{EnglishLong}}<br>{{EnglishAlternate}}<br>{{ImageUrl}}",
         },
     ],
 )
 
-# Connect DB
+# Connect to DB
 conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
-cursor.execute("SELECT id, korean_word, korean_phrase, english_translation, image_url FROM vocab_words")
+cursor.execute("""
+    SELECT id, korean_word, korean_word_dictionary_form, korean_phrase, 
+           korean_short_example, english_translation_short, english_translation_long,
+           english_alternate_definitions, image_url
+    FROM vocab_words
+""")
 rows = cursor.fetchall()
 
 media_files = []
 
 for row in rows:
-    word_id, korean_word, korean_phrase, english_translation, image_url = row
+    (word_id, korean_word, korean_dict, korean_phrase, korean_short,
+     english_short, english_long, english_alt, image_url) = row
 
     img_tag = ""
     raw_path = os.path.join(RAW_DIR, f"{word_id}.png")
@@ -75,7 +83,16 @@ for row in rows:
     # Use DB id as guid so we never add a duplicate note
     note = genanki.Note(
         model=model,
-        fields=[korean_word or "", korean_phrase or "", english_translation or "", img_tag],
+        fields=[
+            korean_word or "",
+            korean_dict or "",
+            korean_phrase or "",
+            korean_short or "",
+            english_short or "",
+            english_long or "",
+            english_alt or "",
+            img_tag
+        ],
         guid=genanki.guid_for("anki-builder-" + str(word_id))
     )
     deck.add_note(note)
@@ -88,4 +105,3 @@ package.media_files = media_files
 package.write_to_file(OUTPUT_FILE)
 
 print(f"Deck exported to {OUTPUT_FILE}")
-

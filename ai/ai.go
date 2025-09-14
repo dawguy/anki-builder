@@ -36,10 +36,10 @@ func NewClient() *Client {
 }
 
 type EnrichedWord struct {
-	OriginalWord string
+	OriginalWord   string
 	OriginalPhrase string
 
-	FullResponse               string
+	FullResponse string
 
 	DictionaryFormWord         string
 	ShortExamplePhrase         string
@@ -47,7 +47,8 @@ type EnrichedWord struct {
 	EnglishTranslationLong     string
 	EnglishAlternateDefintions string
 
-	ImagePrompt                string
+	ImagePrompt string
+	ImageURL    string
 }
 
 // EnrichWord calls OpenAI to get translation + image prompt.
@@ -163,7 +164,6 @@ func sanitizeFilename(s string) string {
 	return s
 }
 
-
 func ParseEnrichedWord(input string) EnrichedWord {
 	// Clean up outer quotes if model includes """ ... """
 	input = strings.Trim(input, "\"\n ")
@@ -175,14 +175,14 @@ func ParseEnrichedWord(input string) EnrichedWord {
 
 	var currentKey string
 	fieldMap := map[string]*string{
-		"original word:":                     &word.OriginalWord,
-		"original dictionary form of word:":  &word.DictionaryFormWord,
-		"original phrase:":                   &word.OriginalPhrase,
-		"english translation long:":          &word.EnglishTranslationLong,
-		"english translation short:":         &word.EnglishTranslationShort,
-		"english alternative definitions:":   &word.EnglishAlternateDefintions,
-		"short example using word:":          &word.ShortExamplePhrase,
-		"image prompt:":                      &word.ImagePrompt,
+		"original word:":                    &word.OriginalWord,
+		"original dictionary form of word:": &word.DictionaryFormWord,
+		"original phrase:":                  &word.OriginalPhrase,
+		"english translation long:":         &word.EnglishTranslationLong,
+		"english translation short:":        &word.EnglishTranslationShort,
+		"english alternative definitions:":  &word.EnglishAlternateDefintions,
+		"short example using word:":         &word.ShortExamplePhrase,
+		"image prompt:":                     &word.ImagePrompt,
 	}
 
 	for _, rawLine := range lines {

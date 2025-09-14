@@ -56,6 +56,8 @@ func main() {
 		w.EnglishTranslationShort = &enrichedWord.EnglishTranslationShort
 		w.EnglishTranslationLong = &enrichedWord.EnglishTranslationLong
 		w.EnglishAlternateDefintions = &enrichedWord.EnglishAlternateDefintions
+		w.ImagePrompt = &enrichedWord.ImagePrompt
+		w.ImageURL = &enrichedWord.ImageURL
 
 		// Save enriched word into DB
 		if err := store.AddWord(w); err != nil {

@@ -7,14 +7,27 @@ import (
 )
 
 type VocabWord struct {
-	ID                 int
-	KoreanWord         string
-	KoreanPhrase       *string
-	EnglishTranslation *string
-	ImagePrompt        *string
-	ImageURL           *string
-	GeneratedExampleSentence *string
-	AlternativeDefinitions   *string
+	ID                         int
+	// Word being translated
+	KoreanWord                 string
+	// Dictionary form
+	KoreanWordDictionaryForm   string
+	// Mined phrase or passage
+	KoreanPhrase               *string
+	// Shorter example phrase
+	KoreanShortExample         *string
+
+	// Ideally one word
+	EnglishTranslationShort    *string
+	// Short description of the translation
+	EnglishTranslationLong     *string
+	// Alternate definitions
+	EnglishAlternateDefintions *string
+
+	// What prompt was used to generate the image
+	ImagePrompt                *string
+	// URL image was saved at
+	ImageURL                   *string
 }
 
 type Store struct {
@@ -42,16 +55,18 @@ func (s *Store) initSchema() error {
 	CREATE TABLE IF NOT EXISTS vocab_words (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		korean_word TEXT NOT NULL,
+		korean_word_dictionary_form TEXT,
 		korean_phrase TEXT,
-		english_translation TEXT,
+		korean_short_example TEXT,
+		english_translation_short TEXT,
+		english_translation_long TEXT,
+		english_alternate_definitions TEXT,
 		image_prompt TEXT,
-		image_url TEXT,
-		generated_example_sentence TEXT,
-		alternative_definitions TEXT
+		image_url TEXT
 	);
 
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_korean_word ON vocab_words(korean_word);
-	CREATE INDEX IF NOT EXISTS idx_vocab_english_translation ON vocab_words(english_translation);
+	CREATE INDEX IF NOT EXISTS idx_vocab_english_translation_short ON vocab_words(english_translation_short);
 	`
 
 	_, err := s.db.Exec(schema)
@@ -61,18 +76,50 @@ func (s *Store) initSchema() error {
 // AddWord inserts a new VocabWord into the database.
 func (s *Store) AddWord(word VocabWord) error {
 	query := `
-	INSERT INTO vocab_words (korean_word, korean_phrase, english_translation, image_prompt, image_url, generated_example_sentence, alternative_definitions)
-	VALUES (?, ?, ?, ?, ?, ?, ?)
+	INSERT INTO vocab_words (
+		korean_word,
+		korean_word_dictionary_form,
+		korean_phrase,
+		korean_short_example,
+		english_translation_short,
+		english_translation_long,
+		english_alternate_definitions,
+		image_prompt,
+		image_url
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(korean_word) DO NOTHING;
 	`
 
-	_, err := s.db.Exec(query, word.KoreanWord, word.KoreanPhrase, word.EnglishTranslation, word.ImagePrompt, word.ImageURL, word.GeneratedExampleSentence, word.AlternativeDefinitions)
+	_, err := s.db.Exec(query,
+		word.KoreanWord,
+		word.KoreanWordDictionaryForm,
+		word.KoreanPhrase,
+		word.KoreanShortExample,
+		word.EnglishTranslationShort,
+		word.EnglishTranslationLong,
+		word.EnglishAlternateDefintions,
+		word.ImagePrompt,
+		word.ImageURL,
+	)
 	return err
 }
 
 // GetAll retrieves all vocab words.
 func (s *Store) GetAll() ([]VocabWord, error) {
-	rows, err := s.db.Query(`SELECT id, korean_word, korean_phrase, english_translation, image_prompt, image_url, generated_example_sentence, alternative_definitions FROM vocab_words`)
+	rows, err := s.db.Query(`
+	SELECT
+		id,
+		korean_word,
+		korean_word_dictionary_form,
+		korean_phrase,
+		korean_short_example,
+		english_translation_short,
+		english_translation_long,
+		english_alternate_definitions,
+		image_prompt,
+		image_url
+	FROM vocab_words
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +128,18 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 	var words []VocabWord
 	for rows.Next() {
 		var w VocabWord
-		err := rows.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImagePrompt, &w.ImageURL, &w.GeneratedExampleSentence, &w.AlternativeDefinitions)
+		err := rows.Scan(
+			&w.ID,
+			&w.KoreanWord,
+			&w.KoreanWordDictionaryForm,
+			&w.KoreanPhrase,
+			&w.KoreanShortExample,
+			&w.EnglishTranslationShort,
+			&w.EnglishTranslationLong,
+			&w.EnglishAlternateDefintions,
+			&w.ImagePrompt,
+			&w.ImageURL,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -93,10 +151,35 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 
 // FindByKoreanWord looks up a word by its Korean form.
 func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
-	row := s.db.QueryRow(`SELECT id, korean_word, korean_phrase, english_translation, image_prompt, image_url, generated_example_sentence, alternative_definitions FROM vocab_words WHERE korean_word = ?`, word)
+	row := s.db.QueryRow(`
+	SELECT
+		id,
+		korean_word,
+		korean_word_dictionary_form,
+		korean_phrase,
+		korean_short_example,
+		english_translation_short,
+		english_translation_long,
+		english_alternate_definitions,
+		image_prompt,
+		image_url
+	FROM vocab_words
+	WHERE korean_word = ?
+	`, word)
 
 	var w VocabWord
-	err := row.Scan(&w.ID, &w.KoreanWord, &w.KoreanPhrase, &w.EnglishTranslation, &w.ImagePrompt, &w.ImageURL, &w.GeneratedExampleSentence, &w.AlternativeDefinitions)
+	err := row.Scan(
+		&w.ID,
+		&w.KoreanWord,
+		&w.KoreanWordDictionaryForm,
+		&w.KoreanPhrase,
+		&w.KoreanShortExample,
+		&w.EnglishTranslationShort,
+		&w.EnglishTranslationLong,
+		&w.EnglishAlternateDefintions,
+		&w.ImagePrompt,
+		&w.ImageURL,
+	)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

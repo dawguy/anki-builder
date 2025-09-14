@@ -11,6 +11,8 @@ import (
 
 	"anki-builder/ai"
 	"anki-builder/data"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func main() {
@@ -27,23 +29,33 @@ func main() {
 	aiClient := ai.NewClient()
 
 	alreadySeen := make(map[string]struct{})
+	alreadySeenPhrase := make(map[string]struct{})
 	fmt.Println("New words found in CSV:")
 	for _, w := range newWords {
 		if _, seen := alreadySeen[w.KoreanWord]; seen {
 			continue
 		}
 		alreadySeen[w.KoreanWord] = struct{}{}
+		if w.KoreanPhrase != nil {
+			alreadySeenPhrase[*w.KoreanPhrase] = struct{}{}
+		}
+		language := "Korean"
+		if len(os.Args) >= 2 {
+			language = os.Args[1]
+		}
 		fmt.Printf("%s | %s\n", w.KoreanWord, ptrOrEmpty(w.KoreanPhrase))
-		eng, imgPrompt, imageUrl, err := aiClient.EnrichWord(context.Background(), w)
+		enrichedWord, err := aiClient.EnrichWord(context.Background(), language, w)
 		if err != nil {
 			log.Printf("OpenAI enrichment failed for %s: %v", w.KoreanWord, err)
 			continue
 		}
-		w.EnglishTranslation = &eng
-		w.ImagePrompt = &imgPrompt
-		w.ImageURL = &imageUrl
-		fmt.Printf("Word: %s\nEnglish: %s\nImage Prompt: %s\nImage URL: %s\n\n",
-			w.KoreanWord, eng, imgPrompt, imageUrl)
+		fmt.Println(spew.Sdump(enrichedWord))
+		fmt.Println("=============")
+		w.KoreanWordDictionaryForm = enrichedWord.DictionaryFormWord
+		w.KoreanShortExample = &enrichedWord.ShortExamplePhrase
+		w.EnglishTranslationShort = &enrichedWord.EnglishTranslationShort
+		w.EnglishTranslationLong = &enrichedWord.EnglishTranslationLong
+		w.EnglishAlternateDefintions = &enrichedWord.EnglishAlternateDefintions
 
 		// Save enriched word into DB
 		if err := store.AddWord(w); err != nil {
@@ -55,8 +67,8 @@ func main() {
 			log.Printf("Failed to retrieve from store %s: %v", w.KoreanWord, err)
 			continue
 		}
-		if w.EnglishTranslation != nil {
-			filename := sanitizeFilename(*w.EnglishTranslation)
+		if w.EnglishTranslationShort != nil {
+			filename := sanitizeFilename(*w.EnglishTranslationShort)
 			err = os.Rename(fmt.Sprintf("raw_images/%s.png", filename), fmt.Sprintf("raw_images/%s.png", strconv.Itoa(savedWord.ID)))
 			if err != nil {
 				log.Printf("Failed to rename file %s to %s", fmt.Sprintf("raw_images/%s.png", filename), fmt.Sprintf("raw_images/%s.png", strconv.Itoa(savedWord.ID)))

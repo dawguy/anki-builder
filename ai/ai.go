@@ -35,13 +35,44 @@ func NewClient() *Client {
 	}
 }
 
-// EnrichWord calls OpenAI to get translation + image prompt.
-func (c *Client) EnrichWord(ctx context.Context, word data.VocabWord) (string, string, string, error) {
-	prompt := fmt.Sprintf(`You are helping a Korean learner.
-Word: %s
-Phrase (if given): %s
+type EnrichedWord struct {
+	OriginalWord string
+	OriginalPhrase string
 
-1. Provide a concise English translation of the word. Ideally your reply would be one word long, but feel free to use multiple if it would help.`, word.KoreanWord, ptrOrEmpty(word.KoreanPhrase))
+	FullResponse               string
+
+	DictionaryFormWord         string
+	ShortExamplePhrase         string
+	EnglishTranslationShort    string
+	EnglishTranslationLong     string
+	EnglishAlternateDefintions string
+
+	ImagePrompt                string
+}
+
+// EnrichWord calls OpenAI to get translation + image prompt.
+func (c *Client) EnrichWord(ctx context.Context, languageName string, word data.VocabWord) (EnrichedWord, error) {
+	if languageName == "" {
+		languageName = "Korean"
+	}
+	prompt := fmt.Sprintf(`
+You are helping a young adult learn %s as a foreign language.
+Word we're trying to translate: %s
+Phrase where the learner first encountered the word: %s
+
+Please provide your response in the below format
+
+"""
+Original Word: <word being translated here>
+Original Dictionary Form Of Word: <word being translated's base dictionary form as some langauges have different conjugations>
+Original Phrase: <phrase being translated here>
+English Translation Long: <please produce an English translation of the word in roughly 1 or 2 sentences>
+English Translation Short: <please produce an English translation of the word based on the provided phrase in as few words as possible>
+English Alternative Definitions: <some words can have multiple meanings. Please list any alternate meanings in a comma separate list here>
+Short example using word: <please generate an example sentence using vocabulary an 7th grader would know in %s language. This example setence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language.>
+Image prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time>
+"""
+`, languageName, word.KoreanWord, ptrOrEmpty(word.KoreanPhrase), languageName, languageName)
 
 	resp, err := c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: openai.ChatModelGPT4oMini,
@@ -50,37 +81,12 @@ Phrase (if given): %s
 		},
 	})
 	if err != nil {
-		return "", "", "", err
+		return EnrichedWord{}, err
 	}
 
 	text := resp.Choices[0].Message.Content
-	lines := splitTwoLines(text)
-	if len(lines) == 0 {
-		return "", "", "", err
-	}
-	englishWord := lines[0]
-
-	imagePrompt := fmt.Sprintf(`English word: %s
-
-	1. Please provide a phrase that could be used to generate an image which will help the learner recall this word when they see it on a flashcard study app. Do not include any text other than the phrase which will be used to generate an image.`, englishWord)
-	resp, err = c.api.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Model: openai.ChatModelGPT4oMini,
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(imagePrompt),
-		},
-	})
-	if err != nil {
-		return "", "", "", err
-	}
-	text = resp.Choices[0].Message.Content
-	lines = splitTwoLines(text)
-	if len(lines) == 0 {
-		return englishWord, "", "", err
-	}
-	imageDescription := lines[0]
-
-	// Skipping image generation for testing purposes
-	return englishWord, imageDescription, "", nil
+	enrichedWord := ParseEnrichedWord(text)
+	return enrichedWord, nil
 }
 
 // GenerateImage generates a 512x512 image for a given prompt and returns the URL.
@@ -129,7 +135,6 @@ func (c *Client) GenerateImage(ctx context.Context, prompt string, idStr string)
 	return localPath, nil
 }
 
-
 func ptrOrEmpty(s *string) string {
 	if s == nil {
 		return ""
@@ -156,4 +161,61 @@ func sanitizeFilename(s string) string {
 	s = invalidChars.ReplaceAllString(s, "_")
 	s = strings.Trim(s, "_") // remove leading/trailing underscores
 	return s
+}
+
+
+func ParseEnrichedWord(input string) EnrichedWord {
+	// Clean up outer quotes if model includes """ ... """
+	input = strings.Trim(input, "\"\n ")
+
+	lines := strings.Split(input, "\n")
+	word := EnrichedWord{
+		FullResponse: input,
+	}
+
+	var currentKey string
+	fieldMap := map[string]*string{
+		"original word:":                     &word.OriginalWord,
+		"original dictionary form of word:":  &word.DictionaryFormWord,
+		"original phrase:":                   &word.OriginalPhrase,
+		"english translation long:":          &word.EnglishTranslationLong,
+		"english translation short:":         &word.EnglishTranslationShort,
+		"english alternative definitions:":   &word.EnglishAlternateDefintions,
+		"short example using word:":          &word.ShortExamplePhrase,
+		"image prompt:":                      &word.ImagePrompt,
+	}
+
+	for _, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
+		if line == "" {
+			continue
+		}
+
+		lower := strings.ToLower(line)
+
+		// check if this line starts a new field
+		foundKey := ""
+		for key := range fieldMap {
+			if strings.HasPrefix(lower, key) {
+				foundKey = key
+				break
+			}
+		}
+
+		if foundKey != "" {
+			// new field
+			val := strings.TrimSpace(line[len(foundKey):])
+			*fieldMap[foundKey] = val
+			currentKey = foundKey
+		} else if currentKey != "" {
+			// continuation of previous field
+			prev := *fieldMap[currentKey]
+			if prev != "" {
+				prev += " "
+			}
+			*fieldMap[currentKey] = prev + line
+		}
+	}
+
+	return word
 }

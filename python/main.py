@@ -37,8 +37,8 @@ model = genanki.Model(
     templates=[
         {
             "name": "Card 1",
-            "qfmt": "{{KoreanDictionaryForm}}<br><br>{{KoreanShortExample}}",
-            "afmt": "{{EnglishLong}}<br>{{EnglishAlternate}}<br>{{ImageUrl}}",
+            "qfmt": "<h2>{{KoreanDictionaryForm}}</h2><br>{{KoreanShortExample}}",
+            "afmt": "{{EnglishLong}}<br><br>Alternates: {{EnglishAlternate}}<br><br>{{ImageUrl}}",
         },
     ],
 )

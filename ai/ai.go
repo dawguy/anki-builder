@@ -71,7 +71,7 @@ English Translation Long: <please produce an English translation of the word in 
 English Translation Short: <please produce an English translation of the word based on the provided phrase in as few words as possible>
 English Alternative Definitions: <some words can have multiple meanings. Please list any alternate meanings in a comma separate list here>
 Short example using word: <please generate an example sentence using vocabulary an 7th grader would know in %s language. This example setence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language.>
-Image prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time>
+Image prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time. Please keep the prompt PG rated when possible>
 """
 `, languageName, word.KoreanWord, ptrOrEmpty(word.KoreanPhrase), languageName, languageName)
 
@@ -89,10 +89,9 @@ Image prompt: <please create a prompt based on the word which can be fed into an
 	enrichedWord := ParseEnrichedWord(text)
 
 	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
-	if err != nil {
-		return EnrichedWord{}, err
+	if err == nil {
+		enrichedWord.ImageURL = imgPath
 	}
-	enrichedWord.ImageURL = imgPath
 
 	return enrichedWord, nil
 }

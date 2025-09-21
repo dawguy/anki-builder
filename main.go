@@ -87,6 +87,7 @@ func processWord(w data.VocabWord, aiClient *ai.Client, store *data.Store) {
 	w.EnglishTranslationShort = &enrichedWord.EnglishTranslationShort
 	w.EnglishTranslationLong = &enrichedWord.EnglishTranslationLong
 	w.EnglishAlternateDefintions = &enrichedWord.EnglishAlternateDefintions
+	w.WordImportanceLevel = &enrichedWord.WordImportanceLevel
 	w.ImagePrompt = &enrichedWord.ImagePrompt
 	w.ImageURL = &enrichedWord.ImageURL
 

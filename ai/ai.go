@@ -47,6 +47,8 @@ type EnrichedWord struct {
 	EnglishTranslationLong     string
 	EnglishAlternateDefintions string
 
+	WordImportanceLevel string
+
 	ImagePrompt string
 	ImageURL    string
 }
@@ -70,8 +72,9 @@ Original Phrase: <phrase being translated here>
 English Translation Long: <please produce an English translation of the word in roughly 1 or 2 sentences>
 English Translation Short: <please produce an English translation of the word based on the provided phrase in as few words as possible>
 English Alternative Definitions: <some words can have multiple meanings. Please list any alternate meanings in a comma separate list here>
-Short example using word: <please generate an example sentence using vocabulary an 7th grader would know in %s language. This example setence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language.>
-Image prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time. Please keep the prompt PG rated when possible>
+Short Example Using Word: <please generate an example sentence using vocabulary an 7th grader would know in %s language. This example setence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language.>
+Image Prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time. Please keep the prompt PG rated when possible>
+Word Importance Level: <High / Medium / Low>
 """
 `, languageName, word.KoreanWord, ptrOrEmpty(word.KoreanPhrase), languageName, languageName)
 
@@ -87,6 +90,18 @@ Image prompt: <please create a prompt based on the word which can be fed into an
 
 	text := resp.Choices[0].Message.Content
 	enrichedWord := ParseEnrichedWord(text)
+
+	importanceLevel := strings.ToLower(enrichedWord.DictionaryFormWord)
+	switch importanceLevel {
+	case "high":
+		enrichedWord.WordImportanceLevel = "High"
+	case "medium", "med":
+		enrichedWord.WordImportanceLevel = "Medium"
+	case "low":
+		enrichedWord.WordImportanceLevel = "Low"
+	default:
+		enrichedWord.WordImportanceLevel = ""
+	}
 
 	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
 	if err == nil {
@@ -189,6 +204,7 @@ func ParseEnrichedWord(input string) EnrichedWord {
 		"english alternative definitions:":  &word.EnglishAlternateDefintions,
 		"short example using word:":         &word.ShortExamplePhrase,
 		"image prompt:":                     &word.ImagePrompt,
+		"word importance level:":            &word.WordImportanceLevel,
 	}
 
 	for _, rawLine := range lines {

@@ -7,27 +7,30 @@ import (
 )
 
 type VocabWord struct {
-	ID                         int
+	ID int
 	// Word being translated
-	KoreanWord                 string
+	KoreanWord string
 	// Dictionary form
-	KoreanWordDictionaryForm   string
+	KoreanWordDictionaryForm string
 	// Mined phrase or passage
-	KoreanPhrase               *string
+	KoreanPhrase *string
 	// Shorter example phrase
-	KoreanShortExample         *string
+	KoreanShortExample *string
 
 	// Ideally one word
-	EnglishTranslationShort    *string
+	EnglishTranslationShort *string
 	// Short description of the translation
-	EnglishTranslationLong     *string
+	EnglishTranslationLong *string
 	// Alternate definitions
 	EnglishAlternateDefintions *string
 
+	// Importance level <High / Medium / Low> expected values
+	WordImportanceLevel *string
+
 	// What prompt was used to generate the image
-	ImagePrompt                *string
+	ImagePrompt *string
 	// URL image was saved at
-	ImageURL                   *string
+	ImageURL *string
 }
 
 type Store struct {
@@ -61,12 +64,14 @@ func (s *Store) initSchema() error {
 		english_translation_short TEXT,
 		english_translation_long TEXT,
 		english_alternate_definitions TEXT,
+		word_importance_level TEXT,
 		image_prompt TEXT,
 		image_url TEXT
 	);
 
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_korean_word ON vocab_words(korean_word);
 	CREATE INDEX IF NOT EXISTS idx_vocab_english_translation_short ON vocab_words(english_translation_short);
+	CREATE INDEX IF NOT EXISTS idx_vocab_importance_level ON vocab_words(word_importance_level);
 	`
 
 	_, err := s.db.Exec(schema)
@@ -84,9 +89,10 @@ func (s *Store) AddWord(word VocabWord) error {
 		english_translation_short,
 		english_translation_long,
 		english_alternate_definitions,
+		word_importance_level,
 		image_prompt,
 		image_url
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(korean_word) DO NOTHING;
 	`
 
@@ -98,6 +104,7 @@ func (s *Store) AddWord(word VocabWord) error {
 		word.EnglishTranslationShort,
 		word.EnglishTranslationLong,
 		word.EnglishAlternateDefintions,
+		word.WordImportanceLevel,
 		word.ImagePrompt,
 		word.ImageURL,
 	)
@@ -116,6 +123,7 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 		english_translation_short,
 		english_translation_long,
 		english_alternate_definitions,
+		word_importance_level,
 		image_prompt,
 		image_url
 	FROM vocab_words
@@ -137,6 +145,7 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 			&w.EnglishTranslationShort,
 			&w.EnglishTranslationLong,
 			&w.EnglishAlternateDefintions,
+			&w.WordImportanceLevel,
 			&w.ImagePrompt,
 			&w.ImageURL,
 		)
@@ -161,6 +170,7 @@ func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
 		english_translation_short,
 		english_translation_long,
 		english_alternate_definitions,
+		word_importance_level,
 		image_prompt,
 		image_url
 	FROM vocab_words
@@ -177,6 +187,7 @@ func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
 		&w.EnglishTranslationShort,
 		&w.EnglishTranslationLong,
 		&w.EnglishAlternateDefintions,
+		&w.WordImportanceLevel,
 		&w.ImagePrompt,
 		&w.ImageURL,
 	)

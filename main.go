@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"anki-builder/ai"
 	"anki-builder/data"
@@ -38,12 +39,16 @@ func main() {
 	jobs := make(chan data.VocabWord)
 	var wg sync.WaitGroup
 
+	rateLimit := time.Minute / 10
+	throttle := time.Tick(rateLimit)
+
 	// start workers
 	for i := 0; i < workerCount; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for w := range jobs {
+				<-throttle
 				processWord(w, aiClient, store)
 			}
 		}()

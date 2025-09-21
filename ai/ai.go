@@ -91,7 +91,7 @@ Word Importance Level: <High / Medium / Low>
 	text := resp.Choices[0].Message.Content
 	enrichedWord := ParseEnrichedWord(text)
 
-	importanceLevel := strings.ToLower(enrichedWord.DictionaryFormWord)
+	importanceLevel := strings.ToLower(enrichedWord.WordImportanceLevel)
 	switch importanceLevel {
 	case "high":
 		enrichedWord.WordImportanceLevel = "High"

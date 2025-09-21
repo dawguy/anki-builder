@@ -50,7 +50,7 @@ cursor = conn.cursor()
 cursor.execute("""
     SELECT id, korean_word, korean_word_dictionary_form, korean_phrase, 
            korean_short_example, english_translation_short, english_translation_long,
-           english_alternate_definitions, image_url
+           english_alternate_definitions, image_prompt, image_url, word_importance_level
     FROM vocab_words
 """)
 rows = cursor.fetchall()
@@ -59,7 +59,7 @@ media_files = []
 
 for row in rows:
     (word_id, korean_word, korean_dict, korean_phrase, korean_short,
-     english_short, english_long, english_alt, image_url) = row
+     english_short, english_long, english_alt, image_prompt, image_url, word_importance_level) = row
 
     img_tag = ""
     raw_path = os.path.join(RAW_DIR, f"{word_id}.png")
@@ -93,7 +93,8 @@ for row in rows:
             english_alt or "",
             img_tag
         ],
-        guid=genanki.guid_for("anki-builder-" + str(word_id))
+        guid=genanki.guid_for("anki-builder-" + str(word_id)),
+        tags=[word_importance_level] if word_importance_level else []
     )
     deck.add_note(note)
 

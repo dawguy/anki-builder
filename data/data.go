@@ -64,9 +64,9 @@ func (s *Store) initSchema() error {
 		english_translation_short TEXT,
 		english_translation_long TEXT,
 		english_alternate_definitions TEXT,
-		word_importance_level TEXT,
 		image_prompt TEXT,
-		image_url TEXT
+		image_url TEXT,
+		word_importance_level TEXT
 	);
 
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_korean_word ON vocab_words(korean_word);

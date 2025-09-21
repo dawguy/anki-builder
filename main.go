@@ -32,7 +32,7 @@ func main() {
 	alreadySeen := make(map[string]struct{})
 	alreadySeenPhrase := make(map[string]struct{})
 
-	fmt.Println("New words found in CSV:")
+	fmt.Printf("New words found in CSV: %d\n", len(newWords))
 
 	// worker pool setup
 	const workerCount = 4

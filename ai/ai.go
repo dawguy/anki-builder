@@ -91,7 +91,8 @@ Word Importance Level: <High / Medium / Low>
 	text := resp.Choices[0].Message.Content
 	enrichedWord := ParseEnrichedWord(text)
 
-	importanceLevel := strings.ToLower(enrichedWord.WordImportanceLevel)
+	importanceLevel :=strings.Trim(enrichedWord.WordImportanceLevel, "` \n\"'")
+	importanceLevel = strings.ToLower(importanceLevel)
 	switch importanceLevel {
 	case "high":
 		enrichedWord.WordImportanceLevel = "High"
@@ -100,6 +101,7 @@ Word Importance Level: <High / Medium / Low>
 	case "low":
 		enrichedWord.WordImportanceLevel = "Low"
 	default:
+		fmt.Printf("Failing WordImportanceLevel was %s\n", enrichedWord.WordImportanceLevel)
 		enrichedWord.WordImportanceLevel = ""
 	}
 

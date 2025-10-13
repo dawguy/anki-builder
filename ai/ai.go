@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -85,6 +86,7 @@ Word Importance Level: <High / Medium / Low>
 		},
 	})
 	if err != nil {
+		log.Printf("Failed to enrich word: %s\n", word.KoreanWord)
 		return EnrichedWord{}, err
 	}
 
@@ -107,6 +109,7 @@ Word Importance Level: <High / Medium / Low>
 
 	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
 	if err == nil {
+		log.Printf("Failed to generate image word: %s\n", word.KoreanWord)
 		enrichedWord.ImageURL = imgPath
 	}
 

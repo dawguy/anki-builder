@@ -10,7 +10,7 @@ RAW_DIR = os.path.join(BASE_DIR, "raw_images")
 MEDIA_DIR = os.path.join(BASE_DIR, "images")
 OUTPUT_FILE = os.path.join(BASE_DIR, "korean_vocab.apkg")
 DECK_NAME = "Korean Vocab"
-IMAGE_SIZE = (360, 360)
+IMAGE_SIZE = (320, 320)
 
 os.makedirs(MEDIA_DIR, exist_ok=True)
 
@@ -38,7 +38,7 @@ model = genanki.Model(
         {
             "name": "Card 1",
             "qfmt": "<h2>{{KoreanDictionaryForm}}</h2><br>{{KoreanShortExample}}",
-            "afmt": "{{EnglishLong}}<br><br>Alternates: {{EnglishAlternate}}<br><br>{{ImageUrl}}",
+            "afmt": "<h2>{{KoreanDictionaryForm}}</h2><br>{{KoreanShortExample}}<br>{{EnglishLong}}<br><br>Alternates: {{EnglishAlternate}}<br><br>{{ImageUrl}}",
         },
     ],
 )

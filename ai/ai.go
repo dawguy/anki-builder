@@ -93,7 +93,7 @@ Word Importance Level: <High / Medium / Low>
 	text := resp.Choices[0].Message.Content
 	enrichedWord := ParseEnrichedWord(text)
 
-	importanceLevel :=strings.Trim(enrichedWord.WordImportanceLevel, "` \n\"'")
+	importanceLevel := strings.Trim(enrichedWord.WordImportanceLevel, "` \n\"'")
 	importanceLevel = strings.ToLower(importanceLevel)
 	switch importanceLevel {
 	case "high":
@@ -109,8 +109,12 @@ Word Importance Level: <High / Medium / Low>
 
 	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
 	if err == nil {
-		log.Printf("Failed to generate image word: %s\n", word.KoreanWord)
+		log.Printf("Generated image for word: %s\n", word.KoreanWord)
 		enrichedWord.ImageURL = imgPath
+	} else {
+		log.Println("*************************")
+		log.Printf("Failed image for word: %s\n", word.KoreanWord)
+		log.Println("*************************")
 	}
 
 	return enrichedWord, nil

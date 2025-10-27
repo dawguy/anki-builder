@@ -52,14 +52,28 @@ cursor.execute("""
            korean_short_example, english_translation_short, english_translation_long,
            english_alternate_definitions, image_prompt, image_url, word_importance_level
     FROM vocab_words
+    ORDER BY id ASC
 """)
 rows = cursor.fetchall()
 
 media_files = []
+already_seen_korean_dict = set()
 
 for row in rows:
     (word_id, korean_word, korean_dict, korean_phrase, korean_short,
      english_short, english_long, english_alt, image_prompt, image_url, word_importance_level) = row
+
+    # Skip duplicates by Korean dictionary form
+    korean_dict_norm = (korean_dict or "").strip()
+    if not korean_dict_norm:
+        print(f"Skipping word_id {word_id} — no dictionary form found.")
+        continue
+
+    if korean_dict_norm in already_seen_korean_dict:
+        print(f"Skipping duplicate dictionary form: {korean_dict_norm}")
+        continue
+
+    already_seen_korean_dict.add(korean_dict_norm)
 
     img_tag = ""
     raw_path = os.path.join(RAW_DIR, f"{word_id}.png")
@@ -78,7 +92,7 @@ for row in rows:
         except Exception as e:
             print(f"Could not process {raw_path}: {e}")
     else:
-        print(f"No raw image for word_id {word_id}, skipping")
+        print(f"No raw image for word_id {word_id}, skipping image.")
 
     # Use DB id as guid so we never add a duplicate note
     note = genanki.Note(

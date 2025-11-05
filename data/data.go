@@ -27,6 +27,9 @@ type VocabWord struct {
 	// Importance level <High / Medium / Low> expected values
 	WordImportanceLevel *string
 
+	// Part of speech <Adverb / Adjective / Noun / Verb>
+	PartOfSpeech *string
+
 	// What prompt was used to generate the image
 	ImagePrompt *string
 	// URL image was saved at
@@ -67,11 +70,13 @@ func (s *Store) initSchema() error {
 		image_prompt TEXT,
 		image_url TEXT,
 		word_importance_level TEXT
+		part_of_speech TEXT
 	);
 
 	CREATE UNIQUE INDEX IF NOT EXISTS idx_vocab_korean_word ON vocab_words(korean_word);
 	CREATE INDEX IF NOT EXISTS idx_vocab_english_translation_short ON vocab_words(english_translation_short);
 	CREATE INDEX IF NOT EXISTS idx_vocab_importance_level ON vocab_words(word_importance_level);
+	CREATE INDEX IF NOT EXISTS idx_part_of_speech ON vocab_words(part_of_speech);
 	`
 
 	_, err := s.db.Exec(schema)
@@ -90,9 +95,10 @@ func (s *Store) AddWord(word VocabWord) error {
 		english_translation_long,
 		english_alternate_definitions,
 		word_importance_level,
+		part_of_speech,
 		image_prompt,
 		image_url
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(korean_word) DO NOTHING;
 	`
 
@@ -105,6 +111,7 @@ func (s *Store) AddWord(word VocabWord) error {
 		word.EnglishTranslationLong,
 		word.EnglishAlternateDefintions,
 		word.WordImportanceLevel,
+		word.PartOfSpeech,
 		word.ImagePrompt,
 		word.ImageURL,
 	)
@@ -124,6 +131,7 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 		english_translation_long,
 		english_alternate_definitions,
 		word_importance_level,
+		part_of_speech,
 		image_prompt,
 		image_url
 	FROM vocab_words
@@ -146,6 +154,7 @@ func (s *Store) GetAll() ([]VocabWord, error) {
 			&w.EnglishTranslationLong,
 			&w.EnglishAlternateDefintions,
 			&w.WordImportanceLevel,
+			&w.PartOfSpeech,
 			&w.ImagePrompt,
 			&w.ImageURL,
 		)
@@ -171,6 +180,7 @@ func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
 		english_translation_long,
 		english_alternate_definitions,
 		word_importance_level,
+		part_of_speech,
 		image_prompt,
 		image_url
 	FROM vocab_words
@@ -188,6 +198,7 @@ func (s *Store) FindByKoreanWord(word string) (*VocabWord, error) {
 		&w.EnglishTranslationLong,
 		&w.EnglishAlternateDefintions,
 		&w.WordImportanceLevel,
+		&w.PartOfSpeech,
 		&w.ImagePrompt,
 		&w.ImageURL,
 	)

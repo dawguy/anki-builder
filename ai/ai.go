@@ -49,6 +49,7 @@ type EnrichedWord struct {
 	EnglishAlternateDefintions string
 
 	WordImportanceLevel string
+	PartOfSpeech        string
 
 	ImagePrompt string
 	ImageURL    string
@@ -68,12 +69,13 @@ Please provide your response in the below format
 
 """
 Original Word: <word being translated here>
-Original Dictionary Form Of Word: <word being translated's base dictionary form as some langauges have different conjugations>
+Original Dictionary Form Of Word: <word being translated's base dictionary form as some langauges have different conjugations. DO NOT INCLUDE ANY OTHER TEXT HERE.>
+Part of Speech: <Noun / Verb / Adjective / Adverb>
 Original Phrase: <phrase being translated here>
 English Translation Long: <please produce an English translation of the word in roughly 1 or 2 sentences>
 English Translation Short: <please produce an English translation of the word based on the provided phrase in as few words as possible>
 English Alternative Definitions: <some words can have multiple meanings. Please list any alternate meanings in a comma separate list here>
-Short Example Using Word: <please generate an example sentence using vocabulary an 7th grader would know in %s language. This example setence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language.>
+Short Example Using Word: <Please generate an example sentence using vocabulary an 7th grader would know in %s language. This example sentence will be used on a flashcard so it MUST contain the original word, but the grammatical endings could be changed. The example should be entirely in the %s language. Avoid generic 'I did X to Y' sentences as they overlap with each other and make the flashcards harder to understand. When possible bring the characters and scene from the original phrase.>
 Image Prompt: <please create a prompt based on the word which can be fed into an AI image generator at a later point in time. Please keep the prompt PG rated when possible>
 Word Importance Level: <High / Medium / Low>
 """
@@ -107,14 +109,18 @@ Word Importance Level: <High / Medium / Low>
 		enrichedWord.WordImportanceLevel = ""
 	}
 
-	imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
-	if err == nil {
-		log.Printf("Generated image for word: %s\n", word.KoreanWord)
-		enrichedWord.ImageURL = imgPath
+	// I've found that adjectives lead to images which are more confusing than nothing.
+	pos := strings.ToLower(strings.TrimSpace(enrichedWord.PartOfSpeech))
+	if pos == "noun" || pos == "verb" {
+		imgPath, err := c.GenerateImage(ctx, enrichedWord.ImagePrompt, enrichedWord.EnglishTranslationShort)
+		if err == nil {
+			log.Printf("Generated image for word: %s\n", word.KoreanWord)
+			enrichedWord.ImageURL = imgPath
+		} else {
+			log.Printf("Failed image for word: %s\n", word.KoreanWord)
+		}
 	} else {
-		log.Println("*************************")
-		log.Printf("Failed image for word: %s\n", word.KoreanWord)
-		log.Println("*************************")
+		enrichedWord.ImageURL = ""
 	}
 
 	return enrichedWord, nil
@@ -207,6 +213,7 @@ func ParseEnrichedWord(input string) EnrichedWord {
 	fieldMap := map[string]*string{
 		"original word:":                    &word.OriginalWord,
 		"original dictionary form of word:": &word.DictionaryFormWord,
+		"part of speech:":                   &word.PartOfSpeech,
 		"original phrase:":                  &word.OriginalPhrase,
 		"english translation long:":         &word.EnglishTranslationLong,
 		"english translation short:":        &word.EnglishTranslationShort,

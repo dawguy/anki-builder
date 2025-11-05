@@ -35,11 +35,11 @@ func main() {
 	fmt.Printf("New words found in CSV: %d\n", len(newWords))
 
 	// worker pool setup
-	const workerCount = 2
+	const workerCount = 5
 	jobs := make(chan data.VocabWord)
 	var wg sync.WaitGroup
 
-	rateLimit := time.Minute / 6
+	rateLimit := time.Minute / 10
 	throttle := time.Tick(rateLimit)
 
 	// start workers

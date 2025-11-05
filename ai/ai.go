@@ -120,6 +120,7 @@ Word Importance Level: <High / Medium / Low>
 			log.Printf("Failed image for word: %s\n", word.KoreanWord)
 		}
 	} else {
+		log.Printf("Skipping image for word: %s as it is a %s\n", word.KoreanWord, word.PartOfSpeech)
 		enrichedWord.ImageURL = ""
 	}
 
